@@ -35,9 +35,9 @@ window.GAME_BALANCE = {
   },
 
   rounds: {
-    enemyAmountFactor: 1.0,
-    baseEnemyCount: 6,
-    additionalEnemiesPerTwoHours: 1,
+    enemyAmountFactor: 1.7,
+    baseEnemyCount: 8,
+    additionalEnemiesPerTwoHours: 2,
     maximumHourBonus: 8,
     additionalEnemiesPerDay: 2,
     maximumDayBonus: 6,
@@ -52,7 +52,7 @@ window.GAME_BALANCE = {
       enabledDuringBoss: true,
       checkIntervalSeconds: 2.0,
       chancePercent: 20,
-      maxOnMap: 2,
+      maxOnMap: 4,
       movementSpeed: 70
     },
 
@@ -69,7 +69,7 @@ window.GAME_BALANCE = {
       enabled: true,
       enabledDuringBoss: false,
       checkIntervalSeconds: 2.0,
-      chancePercent: 15,
+      chancePercent: 25,
       maxOnMap: 6,
       minimumMovementSpeed: 48,
       maximumMovementSpeed: 75
@@ -89,11 +89,11 @@ window.GAME_BALANCE = {
 
   weapons: {
     mustard: { dropRate: 29.5, ammo: 20, cooldown: 0.24, projectileSpeed: 1400, damage: 1 },
-    ketchup: { dropRate: 24, ammo: 12, cooldown: 0.52, projectileSpeed: 800, damage: 2 },
+    ketchup: { dropRate: 18, ammo: 12, cooldown: 0.52, projectileSpeed: 800, damage: 2 },
     chili: { dropRate: 21, ammo: 7, cooldown: 0.85, projectileSpeed: 330, verticalSpeed: -215, gravity: 440, explosionDamage: 3, explosionRadius: 105 },
     pizza: { dropRate: 18, ammo: 9, cooldown: 0.72, projectileSpeed: 600, damage: 2 },
-    wave: { dropRate: 12, ammo: 99, cooldown: 0.55, projectileSpeed: 450, damage: 2, growth: 180 },
-    watermelon: { dropRate: 2.5, ammo: 1, cooldown: 1.15, projectileSpeed: 330, verticalSpeed: -265, gravity: 430 },
+    wave: { dropRate: 10, ammo: 99, cooldown: 0.55, projectileSpeed: 450, damage: 2, growth: 180 },
+    watermelon: { dropRate: 4, ammo: 1, cooldown: 1.15, projectileSpeed: 330, verticalSpeed: -265, gravity: 430 },
     infinite: { dropRate: 5, durationSeconds: 10 }
   },
 
