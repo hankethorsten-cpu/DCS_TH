@@ -1,0 +1,78 @@
+sprites/
+│
+├── player/
+│   └── cart.png
+│
+├── enemies/
+│   ├── raider.png
+│   ├── pirate.png
+│   ├── goblin.png
+│
+├── bosses/
+│   ├── giant_cart.png
+│   ├── supplier.png
+│   ├── technician.png
+│   ├── forklift.png
+│   ├── toilet_pyramid.png
+│   └── cleaner.png
+│
+├── weapons/
+│   ├── mustard.png
+│   ├── ketchup.png
+│   ├── chili.png
+│   ├── pizza.png
+│   ├── wave.png
+│   └── watermelon.png
+│
+├── projectiles/
+│   ├── wrench.png
+│   ├── package.png
+│   ├── toilet_roll.png
+│   └── water.png
+│
+└── upgrades/
+    ├── speed.png
+    ├── life.png
+    ├── fire.png
+    ├── ammo.png
+    ├── ram.png
+    └── puddle.png
+
+
+
+
+
+
+sprites/
+
+bosses/
+    giant_cart.png          128x128
+    supplier.png            128x128
+    technician.png          128x128
+    forklift.png            128x128
+    toilet_pyramid.png      128x128
+    cleaner.png             128x128
+
+player/
+    cart.png                96x96
+
+enemies/
+    raider.png              64x64
+    pirate.png              64x64
+    goblin.png              64x64
+
+weapons/
+    mustard.png             48x48
+    ketchup.png             48x48
+    chili.png               48x48
+    pizza.png               48x48
+    wave.png                48x48
+    watermelon.png          48x48
+
+upgrades/
+    speed.png	            48x48
+    life.png                48x48
+    fire.png                48x48
+    ammo.png                48x48
+    ram.png                 48x48
+    puddle.png              48x48

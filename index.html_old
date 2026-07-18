@@ -27,10 +27,6 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
 .upgrade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
 .upgrade-card{min-height:170px;padding:14px 11px;border:1px solid #465364;border-radius:16px;background:#252e39;color:var(--text);box-shadow:none;text-align:center}.upgrade-sprite{display:block;width:58px;height:58px;object-fit:contain;margin:0 auto 5px;image-rendering:pixelated}
 .upgrade-card:active{transform:scale(.98);box-shadow:none}
-.upgrade-card.keyboard-selected{border-color:#ffcf33;box-shadow:0 0 0 4px rgba(255,207,51,.25),0 0 24px rgba(255,207,51,.28);transform:translateY(-3px)}
-.mode-option.keyboard-selected .mode-card{outline:4px solid #ffcf33;outline-offset:3px;box-shadow:0 0 24px rgba(255,207,51,.26)}
-#startBtn.keyboard-selected{outline:4px solid #ffcf33;outline-offset:4px;box-shadow:0 0 26px rgba(255,207,51,.34)}
-
 .upgrade-icon{display:block;font-size:38px;margin-bottom:6px}
 .upgrade-title{display:block;font-size:16px;color:var(--accent);margin-bottom:5px}
 .upgrade-desc{display:block;font-size:12px;line-height:1.35;color:#c1c9d3;font-weight:600}
@@ -183,7 +179,7 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
           <div id="startHallOfFame" class="hof-status">Bestenliste wird geladen …</div>
         </div>
 
-        <div class="start-controls"><b>Menü:</b> A/D oder ←/→ auswählen · F oder Leertaste bestätigen<br><b>Spiel:</b> Pfeiltasten oder WASD · Schießen mit F oder Leertaste · Pause mit P</div>
+        <div class="start-controls"><b>Steuerung:</b> Pfeiltasten oder WASD · Schießen mit F oder Leertaste · Pause mit P<br><b>Cheatmodus:</b> Num + nächster Abschnitt · Num − vorheriges Level</div>
         <button id="startBtn" type="button">Spiel starten</button>
       </div>
     </div>
@@ -511,9 +507,6 @@ var gameOverTitle=document.getElementById("gameOverTitle");
 var roundBanner=document.getElementById("roundBanner");
 var soundBtn=document.getElementById("soundBtn");
 var modeInputs=document.querySelectorAll('input[name="gameMode"]');
-var startMenuIndex=0;
-var upgradeMenuIndex=0;
-
 
 var W=900,H=600,DPR=1;
 var running=false,paused=false,betweenRounds=false,lastTime=0;
@@ -865,57 +858,6 @@ function finishStory(){
   }
 }
 
-function updateStartMenuSelection(){
-  var options=document.querySelectorAll(".mode-option");
-  var startButton=document.getElementById("startBtn");
-  for(var i=0;i<options.length;i++){
-    options[i].classList.toggle("keyboard-selected",startMenuIndex===i);
-  }
-  if(startButton)startButton.classList.toggle("keyboard-selected",startMenuIndex===options.length);
-}
-
-function moveStartMenu(direction){
-  var count=modeInputs.length+1;
-  startMenuIndex=(startMenuIndex+direction+count)%count;
-  if(startMenuIndex<modeInputs.length){
-    modeInputs[startMenuIndex].checked=true;
-  }
-  updateStartMenuSelection();
-  playSound("pickup");
-}
-
-function activateStartMenuSelection(){
-  if(startMenuIndex<modeInputs.length){
-    modeInputs[startMenuIndex].checked=true;
-    updateStartMenuSelection();
-    playSound("pickup");
-  }else{
-    startGame();
-  }
-}
-
-function updateUpgradeMenuSelection(){
-  var cards=upgradeGrid.querySelectorAll(".upgrade-card");
-  if(!cards.length)return;
-  upgradeMenuIndex=(upgradeMenuIndex+cards.length)%cards.length;
-  for(var i=0;i<cards.length;i++){
-    cards[i].classList.toggle("keyboard-selected",i===upgradeMenuIndex);
-  }
-}
-
-function moveUpgradeMenu(direction){
-  var cards=upgradeGrid.querySelectorAll(".upgrade-card");
-  if(!cards.length)return;
-  upgradeMenuIndex=(upgradeMenuIndex+direction+cards.length)%cards.length;
-  updateUpgradeMenuSelection();
-  playSound("pickup");
-}
-
-function activateUpgradeMenuSelection(){
-  var cards=upgradeGrid.querySelectorAll(".upgrade-card");
-  if(cards.length&&cards[upgradeMenuIndex])cards[upgradeMenuIndex].click();
-}
-
 function selectedGameMode(){
   for(var i=0;i<modeInputs.length;i++){
     if(modeInputs[i].checked)return modeInputs[i].value;
@@ -1062,8 +1004,6 @@ function returnToStartScreen(){
   pauseScreen.classList.add("hidden");
   upgradeScreen.classList.add("hidden");
   startScreen.classList.remove("hidden");
-  startMenuIndex=0;
-  updateStartMenuSelection();
   var restart=document.getElementById("restartBtn");
   if(restart)restart.textContent="Nicht speichern · Zum Startbildschirm";
   if(typeof window.resetHighscoreGameState==="function")window.resetHighscoreGameState();
@@ -1076,8 +1016,6 @@ function startGame(){
   resetGame(chosenMode);
   if(typeof window.resetHighscoreGameState==="function")window.resetHighscoreGameState();
   running=true;
-  startMenuIndex=0;
-  updateStartMenuSelection();
   startScreen.classList.add("hidden");pauseScreen.classList.add("hidden");
   upgradeScreen.classList.add("hidden");gameOverScreen.classList.add("hidden");
   lastTime=performance.now();requestAnimationFrame(loop);
@@ -1310,7 +1248,6 @@ function beginUpgradeSelection(){
     var index=Math.floor(Math.random()*pool.length);
     choices.push(pool.splice(index,1)[0]);
   }
-  upgradeMenuIndex=0;
   for(var i=0;i<choices.length;i++){
     (function(up){
       var btn=document.createElement("button");
@@ -1325,7 +1262,6 @@ function beginUpgradeSelection(){
     })(choices[i]);
   }
   upgradeScreen.classList.remove("hidden");
-  updateUpgradeMenuSelection();
 }
 
 function applyUpgrade(id){
@@ -2014,43 +1950,26 @@ updateSoundButton();
 
 window.addEventListener("keydown",function(e){
   var key=e.key,lower=(key||"").toLowerCase();
+  if(lower==="p"&&!e.repeat){togglePause();e.preventDefault();return;}
   var activeTag=document.activeElement&&document.activeElement.tagName;
   var typing=activeTag==="INPUT"||activeTag==="TEXTAREA";
   if(typing){return;}
-
-  var startVisible=!startScreen.classList.contains("hidden");
-  var upgradeVisible=!upgradeScreen.classList.contains("hidden");
-
-  if(startVisible&&!e.repeat){
-    if(lower==="a"||key==="ArrowLeft"){
-      ensureAudio();moveStartMenu(-1);e.preventDefault();return;
-    }
-    if(lower==="d"||key==="ArrowRight"){
-      ensureAudio();moveStartMenu(1);e.preventDefault();return;
-    }
-    if(lower==="f"||key===" "||key==="Spacebar"){
-      ensureAudio();activateStartMenuSelection();e.preventDefault();return;
-    }
-  }
-
-  if(upgradeVisible&&!e.repeat){
-    if(lower==="a"||key==="ArrowLeft"){
-      ensureAudio();moveUpgradeMenu(-1);e.preventDefault();return;
-    }
-    if(lower==="d"||key==="ArrowRight"){
-      ensureAudio();moveUpgradeMenu(1);e.preventDefault();return;
-    }
-    if(lower==="f"||key===" "||key==="Spacebar"){
-      ensureAudio();activateUpgradeMenuSelection();e.preventDefault();return;
-    }
-  }
-
-  if(lower==="p"&&!e.repeat){togglePause();e.preventDefault();return;}
   if((key===" "||key==="Spacebar")&&!e.repeat){
-    if(running){
+    if(!running&&!startScreen.classList.contains("hidden")){
+      ensureAudio();
+      var sb=document.getElementById("startBtn");
+      if(sb) sb.click();
+    }else if(running){
       ensureAudio();
       shoot();
     }
+    e.preventDefault();
+    return;
+  }
+  if((lower==="f")&&!e.repeat&&!running&&!startScreen.classList.contains("hidden")){
+    ensureAudio();
+    var sb=document.getElementById("startBtn");
+    if(sb) sb.click();
     e.preventDefault();
     return;
   }
@@ -2109,7 +2028,7 @@ for(var c=0;c<controls.length;c++){
 document.addEventListener("visibilitychange",function(){if(document.hidden&&running&&!paused&&!betweenRounds)togglePause();},false);
 window.addEventListener("resize",resize,false);
 window.addEventListener("orientationchange",function(){window.setTimeout(resize,200);},false);
-resize();updateStartMenuSelection();draw();
+resize();draw();
 })();
 </script>
 </body>
