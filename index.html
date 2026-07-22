@@ -1589,7 +1589,12 @@ function returnToStartScreen(){
   gameOverScreen.classList.add("hidden");
   pauseScreen.classList.add("hidden");
   upgradeScreen.classList.add("hidden");
+
+  // Die Modusauswahl wird im Hintergrund vorbereitet. Sichtbar ist zunächst
+  // wieder das Titelbild des aktuell aktiven Themes.
   startScreen.classList.remove("hidden");
+  if(logoSplash)logoSplash.classList.remove("hidden");
+
   startMenuIndex=0;
   updateStartMenuSelection();
   var restart=document.getElementById("restartBtn");
@@ -1919,7 +1924,7 @@ function shoot(mode){
     projectiles.push({type:"ketchup",x:sx,y:sy,vx:aimX*ketchupSpeed,vy:aimY*ketchupSpeed,life:2.35,r:12,damage:balanceNumber("weapons.ketchup.damage",2)});
   }else if(type==="chili"){
     var chiliSpeed=balanceNumber("weapons.chili.projectileSpeed",330);
-    chiliBombs.push({x:sx,y:sy,startY:sy,vx:aimX*chiliSpeed,vy:aimY*chiliSpeed,gravity:0,life:.68,fuse:.38,state:"flying",r:11});
+    chiliBombs.push({x:sx,y:sy,startY:sy,vx:aimX*chiliSpeed,vy:aimY*chiliSpeed,gravity:0,life:.68,fuse:.38,state:"flying",r:11,rotation:0});
   }else if(type==="pizza"){
     var pizzaSpeed=balanceNumber("weapons.pizza.projectileSpeed",480);
     if(mode==="look"){
@@ -1935,7 +1940,11 @@ function shoot(mode){
     projectiles.push({type:"wave",x:sx,y:sy,vx:aimX*waveSpeed,vy:aimY*waveSpeed,life:2.0,r:20,damage:balanceNumber("weapons.wave.damage",2),growth:balanceNumber("weapons.wave.growth",180)});
   }else if(type==="watermelon"){
     var melonSpeed=balanceNumber("weapons.watermelon.projectileSpeed",330);
-    watermelons.push({x:sx,y:sy,vx:aimX*melonSpeed,vy:aimY*melonSpeed,gravity:0,r:25,life:2.15,age:0,rotation:0});
+    /* Beim Schuss nach oben detoniert das Projektil ungefähr in der Mitte
+       des Spielfelds. Wird oberhalb der Mitte abgefeuert, fliegt es trotzdem
+       noch ein kurzes, gut sichtbares Stück weiter. */
+    var melonTargetY=aimY<0?Math.min(H*.4,sy-120):null;
+    watermelons.push({x:sx,y:sy,vx:aimX*melonSpeed,vy:aimY*melonSpeed,gravity:0,r:25,life:2.15,age:0,rotation:0,targetY:melonTargetY});
   }
 
   if(infiniteAmmoTimer<=0&&player.ammo<=0)player.weapon=null;
@@ -1965,7 +1974,7 @@ function damageEnemy(e,amount,label,knockDir){
 function explodeChili(b){
   b.state="done";
   var radius=balanceNumber("weapons.chili.explosionRadius",105);
-  burst(b.x,b.y,"CHILI-BOOM!","#f2382f");
+  burst(b.x,b.y,"BOOM!","#f2382f");
   playSound("explosion");
   for(var i=0;i<28;i++)particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*390,vy:(Math.random()-.5)*390,life:.85,size:4+Math.random()*8,color:Math.random()<.5?"#ff3428":"#ff9d16"});
   for(i=0;i<enemies.length;i++){
@@ -2193,10 +2202,11 @@ function update(dt){
     wm.life-=dt;
     wm.age=(wm.age||0)+dt;
 
-    if(wm.life<=0||wm.y>=H-34||(wm.age>.18&&shelfHitsCircle(wm.x,wm.y,wm.r))){
+    var reachedUpperTarget=wm.targetY!==null&&wm.targetY!==undefined&&wm.y<=wm.targetY;
+    if(wm.life<=0||reachedUpperTarget||wm.y>=H-34||(wm.age>.18&&shelfHitsCircle(wm.x,wm.y,wm.r))){
       wm.exploded=true;
       playSound("melonBoom");
-      burst(wm.x,Math.min(wm.y,H-34),"MELONEN-CRASH!","#2b8f3e");
+      burst(wm.x,Math.min(wm.y,H-34),"BADABOOM!","#2b8f3e");
 
       for(var mi=0;mi<24;mi++){
         particles.push({
@@ -2348,7 +2358,7 @@ function update(dt){
   for(i=0;i<chiliBombs.length;i++){
     var cb=chiliBombs[i];
     if(cb.state==="flying"){
-      cb.x+=cb.vx*dt;cb.vy+=cb.gravity*dt;cb.y+=cb.vy*dt;cb.life-=dt;
+      cb.x+=cb.vx*dt;cb.vy+=cb.gravity*dt;cb.y+=cb.vy*dt;cb.life-=dt;cb.rotation=(cb.rotation||0)+dt*6;
       if(cb.life<=0||cb.y>H-35||shelfHitsCircle(cb.x,cb.y,cb.r)){
         cb.state="landed";cb.vx=0;cb.vy=0;cb.y=Math.min(H-35,cb.y);
       }
@@ -2722,8 +2732,12 @@ function draw(){
     ctx.fill();
     ctx.restore();
 
-    // Große, ganze und rotierende Wassermelone.
-    drawWholeWatermelon(wm.x,wm.y,1.18,wm.rotation||0);
+    // Das Theme-Sprite der eingesammelten Waffe wird auch als Projektil verwendet.
+    // Dadurch fliegt im Discounter watermelon.png und im Labor die jeweilige
+    // gleichnamige Theme-Grafik. Die Canvas-Melone bleibt nur als Fallback.
+    if(!drawSprite("weapon.watermelon",wm.x,wm.y,58,58,false,wm.rotation||0)){
+      drawWholeWatermelon(wm.x,wm.y,1.18,wm.rotation||0);
+    }
   }
 
   for(i=0;i<projectiles.length;i++){
@@ -2781,7 +2795,11 @@ function draw(){
   }
 
   for(i=0;i<chiliBombs.length;i++){
-    var cb=chiliBombs[i];ctx.font="28px sans-serif";ctx.fillText("🌶️",cb.x,cb.y);
+    var cb=chiliBombs[i];
+    // Auch die geworfene Chili nutzt das PNG des aktiven Themes.
+    if(!drawSprite("weapon.chili",cb.x,cb.y,42,42,false,cb.rotation||0)){
+      ctx.font="28px sans-serif";ctx.fillText("🌶️",cb.x,cb.y);
+    }
     if(cb.state==="landed"){ctx.strokeStyle=cb.fuse<.18?"#fff":"#ff382c";ctx.lineWidth=3;ctx.beginPath();ctx.arc(cb.x,cb.y,20+(1-cb.fuse/.38)*18,0,Math.PI*2);ctx.stroke();}
   }
 
