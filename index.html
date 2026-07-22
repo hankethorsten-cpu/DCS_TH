@@ -39,7 +39,9 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
 .upgrade-icon{display:block;font-size:38px;margin-bottom:6px}
 .upgrade-title{display:block;font-size:16px;color:var(--accent);margin-bottom:5px}
 .upgrade-desc{display:block;font-size:12px;line-height:1.35;color:#c1c9d3;font-weight:600}
-.mobile-controls{position:absolute;left:9px;right:9px;bottom:9px;z-index:7;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none}
+.mobile-controls{display:none!important}
+.touch-hint{position:absolute;left:50%;bottom:10px;z-index:7;transform:translateX(-50%);padding:6px 10px;border-radius:999px;background:rgba(15,20,27,.72);color:#fff;font-size:11px;font-weight:800;pointer-events:none;opacity:.72;white-space:nowrap}
+@media(pointer:fine){.touch-hint{display:none}}
 .dpad{width:156px;height:120px;position:relative;pointer-events:auto}
 .ctrl{position:absolute;width:52px;height:52px;display:grid;place-items:center;border-radius:13px;background:rgba(30,38,49,.91);border:1px solid rgba(255,255,255,.2);font-size:24px;font-weight:900;user-select:none;-webkit-user-select:none;touch-action:none}
 .up{left:52px;top:0}.left{left:0;top:54px}.down{left:52px;top:54px}.right{left:104px;top:54px}
@@ -205,15 +207,7 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
       <div class="stage-clear-text" id="stageClearText">07:00 Uhr geschafft!</div>
     </div>
 
-    <div class="mobile-controls">
-      <div class="dpad">
-        <div class="ctrl up" data-key="ArrowUp">▲</div>
-        <div class="ctrl left" data-key="ArrowLeft">◀</div>
-        <div class="ctrl down" data-key="ArrowDown">▼</div>
-        <div class="ctrl right" data-key="ArrowRight">▶</div>
-      </div>
-      <div class="actions"><div class="ctrl action" data-key="Shoot">💥</div></div>
-    </div>
+    <div class="touch-hint" id="touchHint">Links bewegen · rechts schießen: links / rechts / oben</div>
 
     <div class="overlay" id="startScreen">
       <div class="card">
@@ -273,7 +267,7 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
     <div class="overlay hidden" id="pauseScreen">
       <div class="card">
         <h1 id="pauseHeading">Spiel <b>pausiert</b></h1>
-        <p id="pauseText">Drücke P oder tippe erneut auf den Pause-Knopf.</p>
+        <p id="pauseText">Drücke P, tippe auf den Pause-Knopf oder tippe auf diesen Bildschirm.</p>
       </div>
     </div>
 
@@ -887,6 +881,7 @@ var spritePaths={
   "weapon.ketchup":"weapons/ketchup.png",
   "weapon.chili":"weapons/chili.png",
   "weapon.pizza":"weapons/pizza.png",
+  "projectile.pizzaQuarter":"weapons/pizza-quarter.png",
   "weapon.wave":"weapons/wave.png",
   "weapon.watermelon":"weapons/watermelon.png",
   "powerup.speed":"powerups/speed.png",
@@ -1639,6 +1634,7 @@ function startGame(){
 function togglePause(){
   if(!running||betweenRounds){return;}
   paused=!paused;pauseScreen.classList.toggle("hidden",!paused);
+  if(paused){movePointerId=null;firePointerId=null;touchFireMode=null;clearTouchMovement();}
   if(!paused){lastTime=performance.now();}
 }
 
@@ -2142,6 +2138,7 @@ function update(dt){
   }
   if(keys.Shoot||keys.f||keys.F||keys[" "]||keys.Spacebar){shoot("up");}
   if(keys.g||keys.G){shoot("look");}
+  updateTouchFire();
 
   var slow=1;
   for(var pi=0;pi<puddles.length;pi++){
@@ -2768,11 +2765,15 @@ function draw(){
       ctx.stroke();
       ctx.restore();
     }else if(pr.type==="pizza"){
-      ctx.save();ctx.translate(pr.x,pr.y);ctx.rotate(pr.rotation||0);
-      ctx.fillStyle="#efb84b";ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,pr.r,-Math.PI/2,0);ctx.closePath();ctx.fill();
-      ctx.strokeStyle="#a86620";ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,pr.r,-Math.PI/2,0);ctx.stroke();
-      ctx.fillStyle="#d72a2a";ctx.beginPath();ctx.arc(5,-5,2.5,0,Math.PI*2);ctx.fill();
-      ctx.restore();
+      /* Ein einziges Pizza-Viertel-Sprite wird je nach Flugbahn rotiert.
+         Fehlt die Datei, bleibt die bisherige Canvas-Zeichnung als Fallback aktiv. */
+      if(!drawSprite("projectile.pizzaQuarter",pr.x,pr.y,pr.r*2,pr.r*2,false,pr.rotation||0)){
+        ctx.save();ctx.translate(pr.x,pr.y);ctx.rotate(pr.rotation||0);
+        ctx.fillStyle="#efb84b";ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,pr.r,-Math.PI/2,0);ctx.closePath();ctx.fill();
+        ctx.strokeStyle="#a86620";ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,pr.r,-Math.PI/2,0);ctx.stroke();
+        ctx.fillStyle="#d72a2a";ctx.beginPath();ctx.arc(5,-5,2.5,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+      }
     }else{
       ctx.fillStyle="#d51f2b";ctx.beginPath();ctx.arc(pr.x,pr.y,pr.r,0,Math.PI*2);ctx.fill();
       ctx.fillStyle="#ff6b70";ctx.beginPath();ctx.arc(pr.x-3,pr.y-3,pr.r*.35,0,Math.PI*2);ctx.fill();
@@ -2961,6 +2962,12 @@ for(var mi=0;mi<modeInputs.length;mi++){
 }
 document.getElementById("restartBtn").addEventListener("click",returnToStartScreen,false);
 document.getElementById("pauseBtn").addEventListener("click",togglePause,false);
+pauseScreen.addEventListener("pointerup",function(e){
+  if(!paused)return;
+  e.preventDefault();
+  e.stopPropagation();
+  togglePause();
+},false);
 soundBtn.addEventListener("click",function(){
   soundEnabled=!soundEnabled;
   if(soundEnabled){
@@ -3077,17 +3084,100 @@ if(key==="Escape"&&paused&&!e.repeat){
 },false);
 window.addEventListener("keyup",function(e){keys[e.key]=false;},false);
 
-var controls=document.querySelectorAll(".ctrl");
-for(var c=0;c<controls.length;c++){
-  (function(el){
-    var key=el.getAttribute("data-key");
-    function down(ev){ev.preventDefault();setKey(key,true);}
-    function up(ev){ev.preventDefault();setKey(key,false);}
-    el.addEventListener("touchstart",down,{passive:false});el.addEventListener("touchend",up,{passive:false});
-    el.addEventListener("touchcancel",up,{passive:false});el.addEventListener("mousedown",down,false);
-    el.addEventListener("mouseup",up,false);el.addEventListener("mouseleave",up,false);
-  })(controls[c]);
+/* =========================================================
+   MOBILE FINGERSTEUERUNG
+   Linke Bildschirmhälfte: Figur analog bewegen.
+   Rechte Bildschirmhälfte: Dauerfeuer nach links, rechts oder oben.
+   ========================================================= */
+var movePointerId=null,firePointerId=null;
+var moveStartX=0,moveStartY=0;
+var touchMoveX=0,touchMoveY=0;
+var touchFireMode=null;
+var TOUCH_DEADZONE=12;
+
+function clearTouchMovement(){
+  touchMoveX=0;touchMoveY=0;
+  keys.ArrowLeft=false;keys.ArrowRight=false;
+  keys.ArrowUp=false;keys.ArrowDown=false;
 }
+
+function applyTouchMovement(clientX,clientY){
+  var dx=clientX-moveStartX,dy=clientY-moveStartY;
+  var len=Math.sqrt(dx*dx+dy*dy);
+  if(len<TOUCH_DEADZONE){clearTouchMovement();return;}
+  touchMoveX=dx/len;touchMoveY=dy/len;
+  keys.ArrowLeft=touchMoveX<-.28;
+  keys.ArrowRight=touchMoveX>.28;
+  keys.ArrowUp=touchMoveY<-.28;
+  keys.ArrowDown=touchMoveY>.28;
+}
+
+function playerClientPosition(){
+  var rect=canvas.getBoundingClientRect();
+  return {
+    x:rect.left+CAMERA_X+(player.x+player.w/2)*CAMERA_SCALE,
+    y:rect.top+CAMERA_Y+(player.y+player.h/2)*CAMERA_SCALE
+  };
+}
+
+function chooseTouchFireMode(clientX,clientY){
+  var pos=playerClientPosition();
+  var dx=clientX-pos.x,dy=clientY-pos.y;
+  /* Nach unten wird bewusst nicht geschossen. Oberhalb der Figur gewinnt
+     "oben"; ansonsten entscheidet links/rechts. */
+  if(dy<0&&Math.abs(dy)>Math.abs(dx)*.65)return "up";
+  return dx<0?"left":"right";
+}
+
+function shootTouchDirection(mode){
+  if(mode==="up"){shoot("up");return;}
+  var oldFacing=player.facing;
+  player.facing=mode==="right"?-1:1;
+  shoot("look");
+  player.facing=oldFacing;
+}
+
+canvas.addEventListener("pointerdown",function(e){
+  if(e.pointerType==="mouse")return;
+  if(!running||paused||betweenRounds)return;
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  var rect=canvas.getBoundingClientRect();
+  if(e.clientX<rect.left+rect.width/2&&movePointerId===null){
+    movePointerId=e.pointerId;
+    moveStartX=e.clientX;moveStartY=e.clientY;
+    applyTouchMovement(e.clientX,e.clientY);
+  }else if(firePointerId===null){
+    firePointerId=e.pointerId;
+    touchFireMode=chooseTouchFireMode(e.clientX,e.clientY);
+    ensureAudio();
+    shootTouchDirection(touchFireMode);
+  }
+},{passive:false});
+
+canvas.addEventListener("pointermove",function(e){
+  if(e.pointerType==="mouse")return;
+  if(e.pointerId===movePointerId){
+    e.preventDefault();applyTouchMovement(e.clientX,e.clientY);
+  }else if(e.pointerId===firePointerId){
+    e.preventDefault();touchFireMode=chooseTouchFireMode(e.clientX,e.clientY);
+  }
+},{passive:false});
+
+function releaseTouchPointer(e){
+  if(e.pointerId===movePointerId){movePointerId=null;clearTouchMovement();}
+  if(e.pointerId===firePointerId){firePointerId=null;touchFireMode=null;}
+}
+canvas.addEventListener("pointerup",releaseTouchPointer,{passive:false});
+canvas.addEventListener("pointercancel",releaseTouchPointer,{passive:false});
+
+/* Dauerfeuer folgt weiterhin der jeweiligen Waffen-Feuerrate. */
+function updateTouchFire(){
+  if(firePointerId!==null&&touchFireMode&&!paused&&!betweenRounds){
+    shootTouchDirection(touchFireMode);
+  }
+}
+
 document.addEventListener("visibilitychange",function(){if(document.hidden&&running&&!paused&&!betweenRounds)togglePause();},false);
 window.addEventListener("resize",resize,false);
 window.addEventListener("orientationchange",function(){window.setTimeout(resize,200);},false);
