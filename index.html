@@ -255,12 +255,17 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
           <button id="startBtn" type="button" style="min-width:220px">🎮 Spiel starten</button>
         </div>
 
-        <div class="hof-panel">
-          <h3 class="hof-title">🏆 Hall of Fame</h3>
+        <div class="start-controls" id="startControls"><b>Menü</b><br>Mit A/D oder ←/→ Spielart wählen · F oder Leertaste starten<br><b>Spiel</b><br>Mit WASD oder Pfeiltasten deine Figur steuern · F/Leertaste schießt nach oben · G schießt waagerecht in Blickrichtung · Pause mit P · Beenden über das Pausemenü mit ESC</div>
+
+        <div class="hof-panel hof-fame-panel">
+          <h3 class="hof-title" id="startHallOfFameTitle">🏆 Hall of Fame</h3>
           <div id="startHallOfFame" class="hof-status">Bestenliste wird geladen …</div>
         </div>
 
-        <div class="start-controls" id="startControls"><b>Menü:</b> A/D oder ←/→ Spielart wählen · F oder Leertaste starten<br><b>Spiel:</b> Pfeiltasten oder WASD · F/Leertaste schießt nach oben · G schießt waagerecht in Blickrichtung · Pause mit P</div>
+        <div class="hof-panel shame-mode hof-shame-panel">
+          <h3 class="hof-title" id="startHallOfShameTitle">💀 Hall of Shame</h3>
+          <div id="startHallOfShame" class="hof-status">Schummler-Bestenliste wird geladen …</div>
+        </div>
       </div>
     </div>
 
@@ -299,7 +304,7 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
           <p id="saveStatus" class="save-status"></p>
         </div>
 
-        <div class="hof-panel">
+        <div class="hof-panel" id="gameOverHallPanel">
           <h3 class="hof-title">🏆 Hall of Fame</h3>
           <div id="gameOverHallOfFame" class="hof-status">Bestenliste wird geladen …</div>
         </div>
@@ -384,6 +389,8 @@ button:active{transform:translateY(4px);box-shadow:0 2px 0 #a98918}
     setText("endlessModeText","start.endlessText","");
     setText("startBtn","start.startButton","🎮 Spiel starten");
     setHtml("startControls","start.controls","");
+    setText("startHallOfFameTitle","hallOfFame.title","🏆 Hall of Fame");
+    setText("startHallOfShameTitle","hallOfFame.shameTitle","💀 Hall of Shame");
     var pauseHeading=document.getElementById("pauseHeading");
     if(pauseHeading)pauseHeading.innerHTML=window.themeText("pause.titleFirst","Spiel")+' <b>'+window.themeText("pause.titleSecond","pausiert")+'</b>';
     setHtml("pauseText","pause.text","");
@@ -437,7 +444,9 @@ let shameMode = false;
 let toastTimer = 0;
 
 const startList = document.getElementById("startHallOfFame");
+const startShameList = document.getElementById("startHallOfShame");
 const gameOverList = document.getElementById("gameOverHallOfFame");
+const gameOverPanel = document.getElementById("gameOverHallPanel");
 const nameInput = document.getElementById("playerName");
 const nameLength = document.getElementById("nameLength");
 const saveButton = document.getElementById("saveScoreBtn");
@@ -457,55 +466,57 @@ function escapeText(value) {
   return span.innerHTML;
 }
 
-function rankSymbol(rank) {
-  if (shameMode) return "🤡";
+function rankSymbol(rank, showCheated) {
+  if (showCheated) return "🤡";
   if (rank === 1) return "🥇";
   if (rank === 2) return "🥈";
   if (rank === 3) return "🥉";
   return rank + ".";
 }
 
-function applyModeToPanels() {
-  document.querySelectorAll(".hof-panel").forEach(panel => {
-    panel.classList.toggle("shame-mode", shameMode);
-    const title = panel.querySelector(".hof-title");
-    if (title) title.textContent = shameMode ? themeText("hallOfFame.shameTitle","💀 Hall of Shame") : themeText("hallOfFame.title","🏆 Hall of Fame");
-  });
-}
-
-function filterScores() {
-  visibleScores = allScores
-    .filter(entry => shameMode ? entry.cheated === true : entry.cheated !== true)
+function scoresForMode(showCheated) {
+  return allScores
+    .filter(entry => showCheated ? entry.cheated === true : entry.cheated !== true)
     .sort((a, b) => (b.score - a.score) || (a.createdAt - b.createdAt))
     .slice(0, 10);
 }
 
-function renderHallOfFame(target) {
+function applyModeToGameOverPanel() {
+  if (!gameOverPanel) return;
+  gameOverPanel.classList.toggle("shame-mode", shameMode);
+  const title = gameOverPanel.querySelector(".hof-title");
+  if (title) title.textContent = shameMode
+    ? themeText("hallOfFame.shameTitle","💀 Hall of Shame")
+    : themeText("hallOfFame.title","🏆 Hall of Fame");
+}
+
+function renderHallOfFame(target, showCheated) {
   if (!target) return;
-  if (!visibleScores.length) {
+  const entries = scoresForMode(showCheated);
+  if (!entries.length) {
     target.className = "hof-status";
-    target.textContent = shameMode
+    target.textContent = showCheated
       ? themeText("hallOfFame.shameEmpty","Noch keine ertappten Schummler vorhanden.")
       : themeText("hallOfFame.empty","Noch keine Einträge – sichere dir den ersten Platz!");
     return;
   }
   target.className = "hof-list";
-  target.innerHTML = visibleScores.map((entry, index) => {
+  target.innerHTML = entries.map((entry, index) => {
     const isNew = entry.id === highlightedId ? " new-score" : "";
     return '<div class="hof-row' + isNew + '">' +
-      '<span class="hof-rank">' + rankSymbol(index + 1) + '</span>' +
+      '<span class="hof-rank">' + rankSymbol(index + 1, showCheated) + '</span>' +
       '<span class="hof-name" title="' + escapeText(entry.name) + '">' +
-      (shameMode ? "🤡 " : "") + escapeText(entry.name) + '</span>' +
+      (showCheated ? "🤡 " : "") + escapeText(entry.name) + '</span>' +
       '<span class="hof-score">' + formatScore(entry.score) + '</span>' +
       '</div>';
   }).join("");
 }
 
 function renderBoth() {
-  applyModeToPanels();
-  filterScores();
-  renderHallOfFame(startList);
-  renderHallOfFame(gameOverList);
+  renderHallOfFame(startList, false);
+  renderHallOfFame(startShameList, true);
+  applyModeToGameOverPanel();
+  renderHallOfFame(gameOverList, shameMode);
 }
 
 function showModeToast() {
@@ -562,7 +573,7 @@ async function loadScores() {
     renderBoth();
   } catch (error) {
     console.error("Bestenliste konnte nicht geladen werden:", error);
-    [startList, gameOverList].forEach(target => {
+    [startList, startShameList, gameOverList].forEach(target => {
       if (!target) return;
       target.className = "hof-status";
       target.textContent = themeText("hallOfFame.unavailable","Bestenliste derzeit nicht erreichbar.");
