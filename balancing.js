@@ -89,10 +89,10 @@ window.GAME_BALANCE = {
 
   weapons: {
     mustard: { dropRate: 29.5, ammo: 20, cooldown: 0.24, projectileSpeed: 1400, damage: 1 },
-    ketchup: { dropRate: 18, ammo: 12, cooldown: 0.52, projectileSpeed: 800, damage: 2 },
+    ketchup: { dropRate: 18, ammo: 10, cooldown: 0.52, projectileSpeed: 800, damage: 2 },
     chili: { dropRate: 21, ammo: 7, cooldown: 0.85, projectileSpeed: 330, verticalSpeed: -215, gravity: 440, explosionDamage: 3, explosionRadius: 200 },
     pizza: { dropRate: 18, ammo: 9, cooldown: 0.72, projectileSpeed: 600, damage: 2 },
-    wave: { dropRate: 10, ammo: 99, cooldown: 0.55, projectileSpeed: 450, damage: 2, growth: 180 },
+    wave: { dropRate: 10, ammo: 12, cooldown: 0.55, projectileSpeed: 450, damage: 2, growth: 180 },
     watermelon: { dropRate: 4, ammo: 1, cooldown: 1.15, projectileSpeed: 330, verticalSpeed: -265, gravity: 430 },
     infinite: { dropRate: 5, durationSeconds: 10 }
   },
@@ -129,7 +129,7 @@ window.GAME_BALANCE = {
     speedBoostMovementSpeed: 74,
     bossWeaponMovementSpeed: 25,
     guaranteedWeaponAfterSeconds: 10,
-    guaranteedWeaponBossSeconds: 5,
+    guaranteedWeaponBossSeconds: 2,
     guaranteedWeaponNormalSeconds: 9,
     speedBoostFactor: 1.55
   }
